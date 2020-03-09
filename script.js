@@ -1,5 +1,4 @@
 const { default: SlippiGame } = require('slp-parser-js');
-const json2csv = require('json2csv');
 const fs = require("fs");
 const slip_folder = "./slip/"
 const out_folder = "./out/"
@@ -60,19 +59,25 @@ fs.readdirSync(slip_folder).forEach(file => {
 	settings['jig_id'] = jig
 	settings['other_id'] = other
 	const file_name = file.split(".")[0]
-	fs.writeFileSync(path.join(out_folder, file_name + "_game.json"), JSON.stringify(f2), function(err) {
+	
+	if (!fs.existsSync(path.join(out_folder, file_name))){
+    	fs.mkdirSync(path.join(out_folder, file_name));
+	}
+
+
+	fs.writeFileSync(path.join(out_folder, file_name, "game.json"), JSON.stringify(f2), function(err) {
 		if(err) {
 			return console.log("err")
 		}
 	});
 
-	fs.writeFileSync(path.join(out_folder, file_name + "_metadata.json"), JSON.stringify(metadata), function(err) {
+	fs.writeFileSync(path.join(out_folder, file_name, "metadata.json"), JSON.stringify(metadata), function(err) {
 		if(err) {
 			return console.log("err")
 		}
 	});
 
-	fs.writeFileSync(path.join(out_folder, file_name + "_settings.json"), JSON.stringify(settings), function(err) {
+	fs.writeFileSync(path.join(out_folder, file_name, "settings.json"), JSON.stringify(settings), function(err) {
 		if(err) {
 			return console.log("err")
 		}
