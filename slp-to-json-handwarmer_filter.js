@@ -76,11 +76,12 @@ function check_handwarmer(game) {
 }
 
 var handwarmer_cnt = 0;
+var game_cnt = 0;
 // Gets every folder within the ./slip folder
 fs.readdirSync("./slip").forEach(folder => {
 	const slip_folder = "./slip/"+folder+"/"
 	console.log(slip_folder)
-	const out_folder = "./out/"+folder+"/"
+	const out_folder = "./json/"+folder+"/"
 	// Gets every file within the folder defined above containing the .slp files
 	fs.readdirSync(slip_folder).forEach(file => {
 
@@ -100,6 +101,9 @@ fs.readdirSync("./slip").forEach(folder => {
 			console.log('handwarmer');
 			handwarmer_cnt++;
 			return;//if it is handwarmer game, skip it, O.W. continue. 
+		}
+		else {
+			game_cnt++;
 		}
 		console.log('not handwarmer');
 
@@ -135,7 +139,7 @@ fs.readdirSync("./slip").forEach(folder => {
 		var frames2 = {}
 
 		for(i=1;i<last+1;i++) {
-			if(i%60==0) {
+			if(i%15==0) {
 				frames2[i] = frames[i]
 			}
 		}
@@ -175,3 +179,4 @@ fs.readdirSync("./slip").forEach(folder => {
 })
 
 console.log('handwarmers ' + handwarmer_cnt);// count of handwarmers
+console.log("Games " + game_cnt)
