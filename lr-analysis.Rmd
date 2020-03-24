@@ -1,0 +1,38 @@
+---
+title: "lr-analysis"
+author: "Oliver Spohngellert"
+date: "3/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library("tidyverse")
+
+```
+
+```{r}
+data <- read_csv("all_data.csv")
+head(data)
+data$stageId <- as.factor(data$stageId)
+```
+
+```{r}
+model  <- lm("winner ~ . -X1 - frame + p1_post_positionX*stageId + p2_post_positionX*stageId", data, family=binomial(link='logit'))
+summary(model)
+```
+
+```{r}
+preds <- as.vector((predict.lm(model, newdata = data) > 0.5) == data$winner)
+```
+
+```{r}
+probs <- predict.lm(model, newdata = data)
+preds <- probs[!is.na(probs)] > 0.5
+mean(preds == data$winner[!is.na(probs)])
+```
+
