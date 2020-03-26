@@ -1,0 +1,65 @@
+---
+title: "Decision Tree"
+author: "HAIXIA BIAN"
+date: "3/25/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tree)
+library(caret)
+library(rpart)
+library("rpart.plot")
+```
+
+```{r}
+mydata = read.csv(file.choose())
+head(mydata)
+attach(mydata)
+```
+
+```{r}
+cleandata <- mydata[,-c(0,1)]
+head(cleandata)
+#Split training and test set
+train_data <- cleandata[c(1:(0.7*nrow(cleandata))),]
+test_data <- cleandata[-c(1:(0.7*nrow(cleandata))),]
+#Perform ten-fold cross-validation
+#Defining training control
+set.seed(111)
+train.control <- trainControl(method = "cv", number = 10)
+#train the model
+model <- train(winner ~., data = train_data,
+               method = "ctree2",
+               trControl = train.control,
+               na.action = na.exclude)
+#Summarize the results
+print(model)
+```
+```{r}
+#Best model 
+model$finalModel
+#visulaize model:
+plot(model$finalModel)
+
+```
+```{r}
+model_test1 <- rpart(winner ~., data = train_data, parms=list(split="gini"),
+      cp=0.01, minsplit=20, maxdepth = 5)
+rpart.plot(model_test1)
+
+```
+
+```{r}
+tree.data <- tree(winner~.,train_data)
+summary(tree.data)
+plot(tree.data)
+text(tree.data ,pretty =0)
+```
+
+
+
