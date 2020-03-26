@@ -19,10 +19,15 @@ library("tidyverse")
 data <- read_csv("all_data.csv")
 head(data)
 data$stageId <- as.factor(data$stageId)
+# data$p1_post_stocksRemaining <- as.factor(data$p1_post_stocksRemaining)
+# data$p2_post_stocksRemaining <- as.factor(data$p2_post_stocksRemaining)
+levels(data$stageId)
+
 ```
 
 ```{r}
-model  <- lm("winner ~ . -X1 - frame + p1_post_positionX*stageId + p2_post_positionX*stageId", data, family=binomial(link='logit'))
+library(ISLR)
+model  <- glm("winner ~ . - X1 - frame - p1_post_lCancelStatus - p2_post_lCancelStatus", data, family="binomial")
 summary(model)
 ```
 
@@ -31,8 +36,122 @@ preds <- as.vector((predict.lm(model, newdata = data) > 0.5) == data$winner)
 ```
 
 ```{r}
-probs <- predict.lm(model, newdata = data)
-preds <- probs[!is.na(probs)] > 0.5
-mean(preds == data$winner[!is.na(probs)])
+probs <- predict.glm(model, newdata = data, type="response")
+preds <- probs > 0.5
+mean(preds == data$winner)
 ```
+
+
+```{r}
+stages <- list(c(2, "Fountain of Dreams"), c(3, "Pokemon Stadium"), c(8, "Yoshi's Story"), c(28, "Dream Land"), c(31, "Battlefield"), c(32, "Final Destination"))
+for(i in 1:6){
+  stage <- stages[[i]]
+  sid <- stage[1]
+  name <- stage[2]
+  nd <- (data %>% filter(frame < 120) %>% filter(stageId==sid) %>% mutate(p1_post_percent=p1_post_percent+120))
+
+  print(paste("Average win probability in first 2 seconds of game on", name, mean(predict.glm(model, newdata=nd, type="response"))))
+}
+```
+```{r}
+max_p1_percent <- as.integer(max(data$p1_post_percent))
+jig_win_pred <- c()
+stage_name <- c()
+percent <- c()
+for(i in 1:6){
+  stage <- stages[[i]]
+  sid <- stage[1]
+  name <- stage[2]
+  for(pcnt in seq(0, max_p1_percent, 5)) {
+    nd <- (data %>% filter(frame < 120) %>% filter(stageId==sid) %>% mutate(p1_post_percent=p1_post_percent+pcnt))
+    jig_win_pred <- c(jig_win_pred, mean(predict.glm(model, newdata=nd, type="response")))
+    stage_name <- c(stage_name, name)
+    percent <- c(percent, pcnt)
+  }
+  
+}
+plot_d <- tibble(jig_win_pred=jig_win_pred, stage_name=stage_name, jigg_percent=percent)
+ggplot(plot_d) + geom_point(aes(x=jigg_percent, y=jig_win_pred, color=stage_name))
+```
+
+
+```{r}
+max_p2_percent <- as.integer(max(data$p2_post_percent))
+jig_win_pred <- c()
+stage_name <- c()
+percent <- c()
+for(i in 1:6){
+  stage <- stages[[i]]
+  sid <- stage[1]
+  name <- stage[2]
+  for(pcnt in seq(0, max_p1_percent, 5)) {
+    nd <- (data %>% filter(frame < 120) %>% filter(stageId==sid) %>% mutate(p2_post_percent=p2_post_percent+pcnt))
+    jig_win_pred <- c(jig_win_pred, mean(predict.glm(model, newdata=nd, type="response")))
+    stage_name <- c(stage_name, name)
+    percent <- c(percent, pcnt)
+  }
+  
+}
+
+plot_d <- tibble(jig_win_pred=jig_win_pred, stage_name=stage_name, fox_percent=percent)
+ggplot(plot_d) + geom_point(aes(x=fox_percent, y=jig_win_pred, color=stage_name))
+
+```
+
+
+```{r}
+library(MASS)
+head(data)
+model  <- qda(winner ~ . - X1 - frame - p1_post_lCancelStatus - p2_post_lCancelStatus, data=data)
+```
+
+```{r}
+max_p1_percent <- as.integer(max(data$p1_post_percent))
+jig_win_pred <- c()
+stage_name <- c()
+percent <- c()
+for(i in 1:6){
+  stage <- stages[[i]]
+  sid <- stage[1]
+  name <- stage[2]
+  for(pcnt in seq(0, max_p1_percent, 5)) {
+    nd <- (data %>% filter(frame < 120) %>% filter(stageId==sid) %>% mutate(p1_post_percent=p1_post_percent+pcnt,
+                    p1_post_stocksRemaining=p1_post_stocksRemaining-0,
+                    p2_post_stocksRemaining=p2_post_stocksRemaining-1))
+    jig_win_pred <- c(jig_win_pred, mean(predict(model, nd)$posterior[,2]))
+    stage_name <- c(stage_name, name)
+    percent <- c(percent, pcnt)
+  }
+  
+}
+plot_d <- tibble(jig_win_pred=jig_win_pred, stage_name=stage_name, jigg_percent=percent)
+ggplot(plot_d) + geom_point(aes(x=jigg_percent, y=jig_win_pred, color=stage_name))
+```
+
+
+
+```{r}
+max_p2_percent <- as.integer(max(data$p2_post_percent))
+jig_win_pred <- c()
+stage_name <- c()
+percent <- c()
+for(i in 1:6){
+  stage <- stages[[i]]
+  sid <- stage[1]
+  name <- stage[2]
+  for(pcnt in seq(0, max_p1_percent, 5)) {
+    nd <- (data %>% filter(frame < 120) %>% filter(stageId==sid) %>%
+             mutate(p2_post_percent=p2_post_percent+pcnt,
+                    p1_post_stocksRemaining=p1_post_stocksRemaining-3,
+                    p2_post_stocksRemaining=p2_post_stocksRemaining-2))
+    jig_win_pred <- c(jig_win_pred, mean(predict(model, nd)$posterior[,2]))
+    stage_name <- c(stage_name, name)
+    percent <- c(percent, pcnt)
+  }
+  
+}
+plot_d <- tibble(jig_win_pred=jig_win_pred, stage_name=stage_name, fox_percent=percent)
+ggplot(plot_d) + geom_point(aes(x=fox_percent, y=jig_win_pred, color=stage_name))
+```
+
 
