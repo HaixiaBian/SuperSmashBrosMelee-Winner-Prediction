@@ -1,0 +1,287 @@
+---
+title: "eda"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+note:
+Please prepare your Milestone 1 Report in an unzipped PDF file and submit before the deadline.  Submit a copy of the team report individually, so that I may record a grade.  The following text describes the format for the report.
+
+Please prepare the  report in 12-point font, with single-line spacing and 1-inch margins in 8.5 x 11 inch format.  The report will have a maximum of two-pages of text.  Additionally, the report no more that 1 page of visualizations at the end of the report.  All figures and illustrations will have captions and be referenced in the text.  No links to outside material will be followed.
+
+Please use the report to address the following questions carefully.
+
+ Ideas in the abstract that were considered in this phase of work.  Describe the expected success or failure of each.
+New ideas that were not mentioned in the abstract. How did the data suggest that you considering these ideas now?
+Proposed scope of the work for Milestone 2.
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+summary(all_data1)
+```
+
+```{r}
+summary(all_data1$tourn_id)
+```
+
+```{r}
+#summary(all_data$stageId)
+#nrow(all_data[all_data$stageId==32,])
+```
+
+```{r} 
+#number of tournaments
+length(unique(all_data1$tourn_id))
+```
+
+```{r}
+#names of all tournaments
+tournaments = unique(all_data1$tourn_id)
+tournaments
+```
+
+```{r}
+#number of matches for each tournament
+library(dplyr)
+library(magrittr)
+unique(all_data1$game_id)
+Number_of_games <- c(
+length(unique(dplyr::filter(all_data1, tourn_id == "sns5" )[,18])),
+length(unique(dplyr::filter(all_data1, tourn_id == "bam11" )[,18])),
+length(unique(dplyr::filter(all_data1, tourn_id == "shine2019" )[,18])),
+length(unique(dplyr::filter(all_data1, tourn_id == "ss8" )[,18])),
+length(unique(dplyr::filter(all_data1, tourn_id == "kid" )[,18])),
+length(unique(dplyr::filter(all_data1, tourn_id == "bighouse9" )[,18])),
+length(unique(dplyr::filter(all_data1, tourn_id == "genesis7" )[,18])),
+length(unique(dplyr::filter(all_data1, tourn_id == "mainstage" )[,18])),
+length(unique(dplyr::filter(all_data1, tourn_id == "pound2019" )[,18])),
+length(unique(dplyr::filter(all_data1, tourn_id == "goml2019" )[,18]))
+)
+games_per_tourn <- data.frame(tournaments, Number_of_games)
+View(games_per_tourn)
+```
+
+```{r}
+#number of seconds each match lasted for
+
+``` 
+
+```{r}
+#number of matches/tournaments player 1 won vs how many player 2 won
+#sns5: 123:100 p1 23 p2
+
+all_data1$Winner <- as.integer(as.logical(all_data1$winner))
+
+all_data1 %>% dplyr::filter(all_data1, tourn_id == "sns5" )
+
+winning_rate <- data.frame(
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "sns5" ), game_id), winner = unique(Winner))[,2]),
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "bam11" ), game_id), winner = unique(Winner))[,2]),
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "shine2019" ), game_id), winner = unique(Winner))[,2]),
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "ss8" ), game_id), winner = unique(Winner))[,2]),
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "kid" ), game_id), winner = unique(Winner))[,2]),
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "bighouse9" ), game_id), winner = unique(Winner))[,2]),
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "genesis7" ), game_id), winner = unique(Winner))[,2]),
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "mainstage" ), game_id), winner = unique(Winner))[,2]),
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "pound2019" ), game_id), winner = unique(Winner))[,2]),
+table(summarise(group_by(dplyr::filter(all_data1, tourn_id == "goml2019" ), game_id), winner = unique(Winner))[,2]))
+
+winning_rate <- as.data.frame(t(winning_rate[,c(1,2,4,6,8,10,12,14,16,18,20)]))
+colnames(winning_rate) <- winning_rate[1,]
+winning_rate <- winning_rate[-1, ] 
+row.names(winning_rate)<-1:nrow(winning_rate)
+colnames(winning_rate) <- c("Player_2", "Player_1")
+View(winning_rate)
+winning_rate[10,2]= 0
+View(winning_rate)
+```
+
+```{r}
+winning_rate$Player_1 <- as.numeric(levels(winning_rate$Player_1))[winning_rate$Player_1]
+winning_rate$Player_2 <- as.numeric(levels(winning_rate$Player_2))[winning_rate$Player_2]
+
+boxplot(winning_rate)
+barplot(winning_rate)
+melt(winning_rate)
+ggplot(melt(winning_rate))+
+  geom_bar(aes(x = variable, y = value), stat = "identity")
+
+fig <- plot_ly(data = melt(winning_rate), x = ~value, y = ~variable, type = 'bar',
+        marker = list(color = 'rgb(158,202)',
+                      line = list(color = 'rgb(8,48)',
+                                  width = 1.5)))
+fig <- fig %>% layout(title = "Winning rate ",
+         xaxis = list(title = ""),
+         yaxis = list(title = ""))
+
+fig
+``` 
+
+```{r}
+#percentage winning of player 1 & 2in all tournaments
+total_matches = length(unique(all_data1$game_id))
+total_matches
+
+
+player1_win = sum(winning_rate$Player_1)
+player1_win
+
+player2_win = sum(winning_rate$Player_2)
+player2_win
+
+player1_win_perc = (player1_win/total_matches)*100
+player1_win_perc
+
+player2_win_perc = (player2_win/total_matches)*100
+player2_win_perc
+
+```
+
+```{r}
+library(tidyverse) 
+library(ggplot2)
+``` 
+
+```{r}
+glimpse(all_data1)
+#df_status(all_data1)
+``` 
+
+```{r}
+par(mfrow=c(1,2))
+plot(all_data1$frame,all_data1$p1_post_stocksRemaining)
+plot(all_data1$frame,all_data1$p2_post_stocksRemaining)
+
+``` 
+
+```{r}
+library(reshape2)
+library(plotly)
+Pearsons_Corr_test_1 <- all_data1 %>%
+  dplyr::select("p1_post_positionX", "p1_post_positionY", "p1_post_percent", "p1_post_shieldSize", "p1_post_stocksRemaining", "p2_post_positionX", "p2_post_positionY", "p2_post_percent", "p2_post_shieldSize", "p2_post_stocksRemaining") %>%
+  as.matrix() %>%
+  na.omit() %>%
+  cor()
+
+Pearsons_Corr_test_1 <- round(Pearsons_Corr_test_1,2)
+melted_matrix <- melt(Pearsons_Corr_test_1)
+head(melted_matrix)
+
+value <- Pearsons_Corr_test_1
+layout <- list(title = "Features Correlation Matrix")
+p <- plot_ly()
+p <- add_trace(p, type = "heatmap", x = unique(melted_matrix$Var1), y=unique(melted_matrix$Var2), z = value)
+p <- layout(p, title=layout$title)
+p
+
+``` 
+
+```{r}
+library(fitdistrplus)
+hist(x = all_data1$p1_post_percent, prob = TRUE)
+lines(density(all_data1$p1_post_percent),
+      lwd =2,
+      col="red")
+descdist(all_data1$p1_post_percent)
+``` 
+
+```{r}
+hist(x = all_data1$p2_post_percent, prob = TRUE)
+lines(density(all_data1$p2_post_percent),
+      lwd =2,
+      col="red")
+descdist(all_data1$p2_post_percent)
+``` 
+
+
+```{r}
+#boxplot(all_data1$p1_post_shieldSize)
+```
+
+```{r}
+library(ggpubr)
+stock_percent <- data.frame(all_data1$p1_post_percent, all_data1$p1_post_stocksRemaining)
+colnames(stock_percent) <- c("Percent", "Stocks_remaining")
+stock_percent$Stocks_remaining <- as.factor(stock_percent$Stocks_remaining)
+ggboxplot(stock_percent, x = "Stocks_remaining", y = "Percent", color = "Stocks_remaining")
+
+```
+
+```{r}
+library(ggpubr)
+stock_percent <- data.frame(all_data1$p2_post_percent, all_data1$p2_post_stocksRemaining)
+colnames(stock_percent) <- c("Percent", "Stocks_remaining")
+stock_percent$Stocks_remaining <- as.factor(stock_percent$Stocks_remaining)
+ggboxplot(stock_percent, x = "Stocks_remaining", y = "Percent", color = "Stocks_remaining")
+
+```
+
+```{r}
+stage3 = all_data1 %>% dplyr::filter(stageId == 3, tourn_id == "sns5", game_id == 1)
+ggplot(stage3, aes(x = frame)) +
+  geom_line(aes(y = p1_post_percent), colour = "darkred")+
+  geom_line(aes(y = p2_post_percent), colour = "steelblue")
+```
+
+```{r}
+#in each game what was the x,y position of the losing player. scatter plot
+
+```
+
+```{r}
+library(GGally)
+```
+
+```{r}
+View(stage3)
+X <- stage3[,c(2,3,5,6,7,9,10,12,13,14)]
+ggpairs(X)
+```
+
+```{r}
+#plot_num(stage3)
+```
+
+```{r}
+#plot(stage3$frame, stage3$p1_post_positionX, stage3$p1_post_positionY)
+
+fig1 <-plot_ly(stage3, x = ~frame, y = ~p1_post_positionX, z = ~p1_post_positionY)
+fig1 <- fig1 %>% add_markers()
+fig1
+```
+
+```{r}
+
+fig2 <-plot_ly(stage3, x = ~frame, y = ~p2_post_positionX, z = ~p2_post_positionY)
+fig2 <- fig2 %>% add_markers()
+fig2
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+
+
+
+
