@@ -14,6 +14,9 @@ library(tree)
 library(caret)
 library(rpart)
 library("rpart.plot")
+library(rattle)
+library(RColorBrewer)
+library(ROCR)
 ```
 
 ```{r}
@@ -23,11 +26,17 @@ attach(mydata)
 ```
 
 ```{r}
+#Transfer stageID to be categorical data
+mydata$stageId <- as.factor(mydata$stageId)
 cleandata <- mydata[,-c(0,1)]
 head(cleandata)
+
 #Split training and test set
 train_data <- cleandata[c(1:(0.7*nrow(cleandata))),]
 test_data <- cleandata[-c(1:(0.7*nrow(cleandata))),]
+```
+
+```{r}
 #Perform ten-fold cross-validation
 #Defining training control
 set.seed(111)
@@ -40,26 +49,77 @@ model <- train(winner ~., data = train_data,
 #Summarize the results
 print(model)
 ```
+
 ```{r}
 #Best model 
-model$finalModel
-#visulaize model:
-plot(model$finalModel)
-
+finalModel <- model$finalModel
+#visulaize final model:
+plot(finalModel)
 ```
-```{r}
-model_test1 <- rpart(winner ~., data = train_data, parms=list(split="gini"),
-      cp=0.01, minsplit=20, maxdepth = 5)
-rpart.plot(model_test1)
 
+```{r}
+#Make prediction
+pred_cv <- predict(model, test_data)
+confusionMatrix(pred_cv, test_data$winner)
+```
+
+```{r}
+#use rpart library to Tune the hyper-parameters
+model_test1 <- rpart(winner ~., data = train_data,
+                     parms=list(split="gini"),
+                     cp=0.0001, minsplit=2000,
+                     minbucket=2000, maxdepth = 10)
+rpart.plot(model_test1,cex=0.6)
+#plot(model_test1); text(model_test1, pretty = 0)
+#fancyRpartPlot(model_test1, cex = 0.6)
+#Validation of decision tree using the ‘Complexity Parameter’ and cross validated error
+printcp(model_test1)
+
+#select least(optimal) cp to make cv error rate is minimum. 
+model_test1$cptable[which.min(model_test1$cptable[,"xerror"]), "CP"] 
+
+plotcp(model_test1) #The error nearly remains unchanged after cp<0.001, so we choose cp=0.001
+```
+
+```{r}
+selected_model <- rpart(winner ~., data = train_data,
+                        parms=list(split="gini"),
+                        cp=0.001, minsplit=2000,
+                        minbucket=2000, maxdepth = 10)
+rpart.plot(selected_model,cex=0.6)
+
+#Prune the tree to create an optimal decision tree
+ptree <- prune(selected_model,
+               cp=selected_model$cptable[which.min(selected_model$cptable[,"xerror"]), "CP"])
+
+rpart.plot(ptree, uniform=TRUE,
+           main="Pruned Classification Tree",
+           cex = 0.6)
+
+fancyRpartPlot(ptree, uniform=TRUE,
+               main="Pruned Classification Tree",
+               cex = 0.6)
 ```
 
 ```{r}
 tree.data <- tree(winner~.,train_data)
 summary(tree.data)
-plot(tree.data)
-text(tree.data ,pretty =0)
+plot(tree.data); text(tree.data ,pretty =0)
 ```
 
+```{r}
+#Make a prediction 
+pred <- predict(selected_model, test_data, type = 'class')
 
-
+#Test on test set
+confusionMatrix(pred, test_data$winner)
+```
+```{r}
+#measurement
+#ROC curve
+pred_prob <- predict(selected_model, test_data, type = 'prob')
+prediction <- prediction(pred_prob[,2], test_data$winner)
+perf <- performance(prediction, "tpr", "fpr")
+plot(perf, colorize=TRUE,
+     main="ROC Curve")
+```
