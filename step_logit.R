@@ -16,6 +16,17 @@ test = read.csv("test.csv")
 test = within(test, rm(frame, game_id, tourn_id))
 test = na.omit(test)
 
+# # Position^2
+# train$p1_X2 = train$p1_post_positionX^2
+# train$p1_Y2 = train$p1_post_positionY^2
+# train$p2_X2 = train$p2_post_positionX^2
+# train$p2_Y2 = train$p2_post_positionY^2
+# 
+# test$p1_X2 = test$p1_post_positionX^2
+# test$p1_Y2 = test$p1_post_positionY^2
+# test$p2_X2 = test$p2_post_positionX^2
+# test$p2_Y2 = test$p2_post_positionY^2
+
 
 
 # # Speedglm
