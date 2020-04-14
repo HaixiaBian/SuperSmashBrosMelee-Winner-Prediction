@@ -1,0 +1,141 @@
+---
+title: "Performance"
+author: "Weichen Li"
+date: "2020/4/14"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Logistic Regression
+
+```{r LR}
+# Training Data
+train = read.csv("train.csv")
+train = within(train, rm(frame, game_id, tourn_id))
+train = na.omit(train)
+
+# Benchmark
+start_time = Sys.time()
+logit_null = glm(formula = winner ~ 1,
+                 data = train,
+                 family = binomial)
+end_time = Sys.time()
+end_time - start_time
+# 0.9805901 s
+
+start_time = Sys.time()
+logit_full = glm(formula = winner ~ .,
+                 data = train,
+                 family = binomial)
+end_time = Sys.time()
+end_time - start_time
+# 1.099135 s
+
+start_time = Sys.time()
+logit_interact = glm(formula = winner ~ . + . ^ 2,
+                     data = train,
+                     family = binomial)
+end_time = Sys.time()
+end_time - start_time
+# 10.42045 s
+
+start_time = Sys.time()
+step_full = step(
+  object = logit_null,
+  scope = formula(logit_full),
+  direction = "both",
+  k = log(nrow(train))
+)
+end_time = Sys.time()
+end_time - start_time
+# 2.174221*60 s
+
+start_time = Sys.time()
+step_interact = step(
+  object = step_full,
+  scope = formula(logit_interact),
+  direction = "both",
+  k = log(nrow(train))
+)
+end_time = Sys.time()
+end_time - start_time
+# 51.05615*60 s
+```
+
+## QDA
+
+```{r QDA}
+# Library
+library(MASS)
+
+# Training Data
+train = read.csv("train.csv")
+train = within(train,
+               rm(
+                 frame,
+                 game_id,
+                 tourn_id,
+                 p1_post_lCancelStatus,
+                 p2_post_lCancelStatus
+               ))
+train = na.omit(train)
+
+# Benchmark
+system.time(qda(winner ~ ., data = train))
+# 0.39 s
+```
+
+## Decision Tree
+
+```{r DT}
+# Library
+library(tree)
+#library(caret)
+library(rpart)
+
+# Training Data
+train = read.csv("train.csv")
+train = na.omit(train)
+train$stageId = as.factor(train$stageId)
+train = train[, -c(0, 1)]
+
+# Benchmark
+start_time = Sys.time()
+selected_model = rpart(
+  winner ~ .,
+  data = train,
+  parms = list(split = "gini"),
+  cp = 0.001,
+  minsplit = 2000,
+  minbucket = 2000,
+  maxdepth = 10
+)
+ptree = prune(selected_model,
+              cp = selected_model$cptable[which.min(selected_model$cptable[, "xerror"]), "CP"])
+end_time = Sys.time()
+end_time - start_time
+# 8.338738 s
+```
+
+## Random Forest
+
+```{r RF}
+# Library
+library(ranger)
+
+# Training Data
+train = read.csv("train.csv")
+train = within(train, rm(frame, game_id, tourn_id))
+train = na.omit(train)
+
+# Benchmark
+system.time(ranger(
+  formula = winner ~ .,
+  data = train,
+  probability = TRUE
+))
+# 72.93 s
+```

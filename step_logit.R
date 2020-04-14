@@ -1,6 +1,7 @@
 library(ROCR)
 # library(speedglm)
 # library(parglm)
+library(ggplot2)
 
 
 
@@ -131,3 +132,25 @@ plot(
 )
 table(test$winner, predictTest >= threshold)
 (39847 + 37265)/104048
+
+# AIC
+aic = sapply(models, extractAIC)[2, ]
+
+# Plot
+ggplot(NULL) +
+  geom_line(aes(x = 1:5, y = aic, color = "AIC")) +
+  geom_line(aes(x = 1:5, y = bic, color = "BIC")) +
+  scale_color_manual(values = c("AIC" = "#F8766D", "BIC" = "#619CFF")) +
+  ggtitle("AIC/BIC of Logistic Regression") +
+  xlab("Models") +
+  ylab("AIC/BIC") +
+  scale_x_discrete(
+    limits = c(
+      "Null",
+      "Full, Linear Terms",
+      "Full, Interaction Terms",
+      "Stepwise, Linear Terms",
+      "Stepwise, Interaction Terms"
+    )
+  ) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
