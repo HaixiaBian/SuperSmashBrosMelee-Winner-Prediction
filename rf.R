@@ -1,4 +1,6 @@
 library(ranger)
+library(tuneRanger)
+library(vip)
 # library(ROCR)
 
 
@@ -16,10 +18,13 @@ test = na.omit(test)
 
 # randomForest
 # rf = ranger(formula = winner ~ ., data = train)
+# rf = ranger(formula = winner ~ .,
+#             data = train,
+#             probability = TRUE)
 rf = ranger(formula = winner ~ .,
             data = train,
-            probability = TRUE)
-
+            probability = TRUE,
+            importance = "impurity")
 
 
 # Test
@@ -38,3 +43,12 @@ plot(
 )
 table(test$winner, predictTest[, 2] >= 0.5)
 (37071 + 37213) / 104048
+
+# Tune
+melee = makeClassifTask(data = train, target = "winner")
+estimateTimeTuneRanger(melee)
+rf_acc = tuneRanger(melee, measure = list(acc))
+rf_auc = tuneRanger(melee, measure = list(auc))
+
+# Plot
+vip(rf) + ggtitle("Random Forest Feature Importance")
