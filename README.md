@@ -1,3 +1,5 @@
+* [Todo List](#todo-list)
+
 # Melee-Win-Prediction
 
 This will be the codebase for predicting the outcome of games of Super Smash Bros Melee via the current game state.
