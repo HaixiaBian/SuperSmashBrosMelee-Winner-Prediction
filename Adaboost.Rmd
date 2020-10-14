@@ -1,0 +1,109 @@
+---
+title: "Adaboost"
+author: "HAIXIA BIAN"
+date: "3/25/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tree)
+library(caret)
+library(rpart)
+library("rpart.plot")
+library(rattle)
+library(JOUSBoost)
+library(fastAdaboost)
+library(RColorBrewer)
+library(ROCR)
+library(cvAUC)
+```
+
+```{r}
+test = read.csv("test.csv")
+test = within(test, rm(frame, game_id, tourn_id))
+test = na.omit(test)
+
+train_data <- read.csv('train.csv')
+test_data <- read.csv('test.csv')
+train_data <- data.frame(train_data[,-c(18,19)])
+test_data <- data.frame(test_data[,-c(18,19)])
+# train_data$winner <- as.logical(train_data$winner)
+# test_data$winner <- as.logical(test_data$winner)
+train_data$stageId <- as.factor(train_data$stageId)
+# train_y <- ifelse(train_data[,17], 1, -1)
+test_data$stageId <- as.factor(test_data$stageId)
+# test_y <- ifelse(test_data[,17], 1, -1)
+```
+
+```{r}
+#train_x <- data.matrix(train_data[,-17], rownames.force = NA)
+model <-  adaboost(winner ~., data = train_data, 5)
+model_real <- real_adaboost(winner ~., data = train_data, 10)
+model_real$trees
+
+#Prediction on training set
+pred <- predict(model, train_data, type = 'class')
+confusionMatrix(pred$class, train_data$winner)
+model$trees
+
+#Prediction on test set
+pred_test <- predict(model, test_data, type = 'class')
+confusionMatrix(pred_test$class, test_data$winner)
+```
+
+```{r}
+#measurement
+#ROC curve
+pred_prob <- predict(model, test_data, type = 'prob')
+#write.csv(pred_prob,'DecisionTree_pred.csv')
+prediction <- prediction(pred_prob[,2], test_data$winner)
+perf <- performance(prediction, "tpr", "fpr")
+AdaBoost_AUC <- AUC(pred_prob[,2], test_data$winner)
+l = sprintf("AdaBoost AUC: %f", AdaBoost_AUC)
+plot(perf, colorize=TRUE,
+     main="ROC Curve"); legend("topleft", legend = l, cex=0.6)
+
+```
+
+```{r}
+#logistic
+lg <- read.csv("lr.csv")
+lg_pred <- ifelse(lg$prob>0.5, "True", "False")
+confusionMatrix(as.factor(lg_pred), test_data$winner)
+
+#logit
+lgit <- read.csv("step_logit.csv")
+lgit$predict <- as.factor(lgit$predict)
+lgit$test <- as.factor(lgit$test)
+confusionMatrix(lgit$predict, lgit$test)
+
+#QDA
+qda <- read.csv("qda.csv")
+qda_pred <- ifelse(qda$prob>0.5, "True", "False")
+confusionMatrix(as.factor(qda_pred), test_data$winner)
+
+#rf
+rf <- read.csv("rf.csv")
+rf$predict <- as.factor(rf$predict)
+rf$test <- as.factor(rf$test)
+confusionMatrix(rf$predict, rf$test)
+
+#Adaboost
+predada <- read.csv("adaboost_pred_label.csv")
+predada$label <- ifelse(predada$label==1, "True", "False")
+data.frame(predada$label, test_data$winner)
+confusionMatrix(as.factor(predada$label), test_data$winner)
+
+#sequence
+seq <- read.csv("sequence_preds.csv")
+seq_pred <- ifelse(seq$preds>0.5, "True", "False")
+confusionMatrix(as.factor(seq_pred), as.factor(seq$labs))
+
+```
+
+
+
