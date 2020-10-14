@@ -17,6 +17,7 @@ library("rpart.plot")
 library(rattle)
 library(RColorBrewer)
 library(ROCR)
+library(cvAUC)
 ```
 
 ```{r}
@@ -32,8 +33,14 @@ cleandata <- mydata[,-c(0,1)]
 head(cleandata)
 
 #Split training and test set
-train_data <- cleandata[c(1:(0.7*nrow(cleandata))),]
-test_data <- cleandata[-c(1:(0.7*nrow(cleandata))),]
+#train_data <- cleandata[c(1:(0.7*nrow(cleandata))),]
+#test_data <- cleandata[-c(1:(0.7*nrow(cleandata))),]
+train_data <- read.csv('train.csv')
+test_data <- read.csv('test.csv')
+train_data <- train_data[,-c(18,19)]
+test_data <- test_data[,-c(18,19)]
+train_data$stageId <- as.factor(train_data$stageId)
+test_data$stageId <- as.factor(test_data$stageId)
 ```
 
 ```{r}
@@ -54,11 +61,12 @@ print(model)
 #Best model 
 finalModel <- model$finalModel
 #visulaize final model:
-plot(finalModel)
+plot(finalModel, main="Final selected model")
 ```
 
 ```{r}
 #Make prediction
+test_data <- na.omit(test_data)
 pred_cv <- predict(model, test_data)
 confusionMatrix(pred_cv, test_data$winner)
 ```
@@ -78,7 +86,19 @@ printcp(model_test1)
 #select least(optimal) cp to make cv error rate is minimum. 
 model_test1$cptable[which.min(model_test1$cptable[,"xerror"]), "CP"] 
 
-plotcp(model_test1) #The error nearly remains unchanged after cp<0.001, so we choose cp=0.001
+loccopy <- function(n, digits = 3){
+  data <- locator(n)
+  data <- round(cbind(data$x, data$y), digits)
+  clip <- pipe("pbcopy", "W")
+  write.table(data, file = clip, col.names = F, row.names = F)
+  close(clip)
+}
+
+
+plotcp(model_test1, minline = TRUE, lty = 3, col = 1, upper = "none",
+       main = "Complexity Parameter Table for an Rpart Fit") #The error nearly remains unchanged after cp<0.001, so we choose cp=0.001
+#loccopy(1)
+?plotcp
 ```
 
 ```{r}
@@ -86,6 +106,7 @@ selected_model <- rpart(winner ~., data = train_data,
                         parms=list(split="gini"),
                         cp=0.001, minsplit=2000,
                         minbucket=2000, maxdepth = 10)
+printcp(selected_model)
 rpart.plot(selected_model,cex=0.6)
 
 #Prune the tree to create an optimal decision tree
@@ -98,7 +119,7 @@ rpart.plot(ptree, uniform=TRUE,
 
 fancyRpartPlot(ptree, uniform=TRUE,
                main="Pruned Classification Tree",
-               cex = 0.6)
+               cex = 0.8)
 ```
 
 ```{r}
@@ -114,12 +135,21 @@ pred <- predict(selected_model, test_data, type = 'class')
 #Test on test set
 confusionMatrix(pred, test_data$winner)
 ```
+
 ```{r}
 #measurement
 #ROC curve
 pred_prob <- predict(selected_model, test_data, type = 'prob')
+#write.csv(pred_prob,'DecisionTree_pred.csv')
 prediction <- prediction(pred_prob[,2], test_data$winner)
 perf <- performance(prediction, "tpr", "fpr")
+DecisionTree_AUC <- AUC(pred_prob[,2], test_data$winner)
+l = sprintf("Decision tree AUC: %f", DecisionTree_AUC)
 plot(perf, colorize=TRUE,
-     main="ROC Curve")
+     main="ROC Curve"); legend("topleft", legend = l, cex=0.6)
+
 ```
+
+
+
+
